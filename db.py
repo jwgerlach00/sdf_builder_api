@@ -26,4 +26,4 @@ class Data(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100))
     dataname = db.Column(db.String(100))
-    smiles = db.Column(db.String(10000)) 
+    smiles = db.Column(db.String(10000))

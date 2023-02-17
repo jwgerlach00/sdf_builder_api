@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from flask_login import login_required, current_user
 from flask import session
 import pandas as pd
@@ -30,6 +30,30 @@ def package_mol(smiles:str) -> str:
     
     return '<img src="data:image/png;base64,{0}"/>'.format(b64.decode('utf-8'))
 
+@main.route('/get_table', methods=['POST'])
+@login_required
+def get_table() -> Response:
+    data = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\'', db.engine)
+    return '', 204
+
+@main.route('/get_saved_tables', methods=['GET'])
+@login_required
+def get_saved_tables() -> Response:
+    df = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\'', db.engine)
+    return df['dataname'].unique().tolist()
+
+@main.route('/table_by_name', methods=['POST'])
+@login_required
+def table_by_name() -> list:
+    data = request.get_json()
+    dataname = data['table_name']
+    print(current_user.username)
+    df = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\' and dataname = \'{dataname}\'', db.engine)
+    return [package_mol(x) for x in df['smiles'].to_list()]
+
+
+    
+
 @main.route('/add_mol_to_table', methods=['POST'])
 @login_required
 def add_mol_to_table() -> list:
@@ -39,8 +63,8 @@ def add_mol_to_table() -> list:
     
     db.add_data(current_user.username, smi)
     
-    data = pd.read_sql_query('select * from data', db.engine)
-    return jsonify([package_mol(x) for x in data['smiles'].to_list()])
+    data = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\'', db.engine)
+    return [package_mol(x) for x in data['smiles'].to_list()]
     
 
 
