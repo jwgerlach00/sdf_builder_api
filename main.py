@@ -1,34 +1,46 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from flask import session
+import pandas as pd
+import base64
+from rdkit.Chem import Draw
+from io import BytesIO
+import naclo
 
-from db import db
+from db import db, Data
 
 
 main = Blueprint('main', __name__)
 
-
-@main.route('/session_1', methods=['GET', 'POST'])
-def session_1():
-    session['save'] = 'test'
-    print(session.sid)
-    return '', 204
-
-@main.route('/session_2', methods=['GET', 'POST'])
-def session_2():
-    print(session['save'])
-    print(session.sid)
-    return '', 204
+def package_mol(smiles:str) -> str:
+    '''Packages a smiles string to html data for Mol drawing'''
+    
+    # mol = naclo.smiles_2_mols([smiles])[0]
+    from rdkit import Chem
+    mol = Chem.MolFromSmiles(smiles)
+    print(smiles)
+    print(mol)
+    pil_img = Draw.MolToImage(mol, size=(300, 100))
+    
+    output = BytesIO()
+    pil_img.save(output, format='PNG')
+    output.seek(0)
+    output_s = output.read()
+    b64 = base64.b64encode(output_s)
+    
+    return '<img src="data:image/png;base64,{0}"/>'.format(b64.decode('utf-8'))
 
 @main.route('/add_mol_to_table', methods=['POST'])
 @login_required
-def add_mol_to_table():
+def add_mol_to_table() -> list:
     print(current_user.username)
     data = request.get_json()
     smi = data['smi']
-
-    # db.add_entry()
-    return '', 204
+    
+    db.add_data(current_user.username, smi)
+    
+    data = pd.read_sql_query('select * from data', db.engine)
+    return jsonify([package_mol(x) for x in data['smiles'].to_list()])
     
 
 

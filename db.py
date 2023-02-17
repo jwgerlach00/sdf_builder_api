@@ -18,18 +18,12 @@ class DB(SQLAlchemy):
 db = DB()
         
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True) # primary keys are required by SQLAlchemy
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
     
 class Data(db.Model):
-    id = db.Column(db.Integer, primary_key=True) # primary keys are required by SQLAlchemy
+    id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100))
     dataname = db.Column(db.String(100))
-    smiles = db.Column(db.String(10000))
-        
-# class UserDB(SQLAlchemy):
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-
- 
+    smiles = db.Column(db.String(10000)) 
