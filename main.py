@@ -1,13 +1,12 @@
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, Response, send_file
 from flask_login import login_required, current_user
-from flask import session
 import pandas as pd
 import base64
 from rdkit.Chem import Draw
 from io import BytesIO
 import naclo
 
-from db import db, Data
+from db import db
 
 
 main = Blueprint('main', __name__)
@@ -80,6 +79,22 @@ def add_mol_to_table() -> list:
         print(data)
         
     return [package_mol(x) for x in data['smiles'].to_list()]
+
+@main.route('/download_sdf', methods=['POST'])
+@login_required
+def download_sdf() -> Response:
+    data = request.get_json()
+    table_name = data['table_name']
+    df = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\' \
+        and dataname = \'{table_name}\'', db.engine)
+    
+    mols = naclo.smiles_2_mols(df['smiles'])
+    df = pd.DataFrame(mols, columns=['ROMol'])
+    
+    buf = BytesIO()
+    writer = naclo.dataframes.Writer(df)
+    buf = writer.write(out=buf, ext='sdf')
+    return send_file(buf, as_attachment=True, download_name=f'{table_name}.sdf')
     
 
 
