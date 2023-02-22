@@ -48,22 +48,37 @@ def table_by_name() -> list:
     data = request.get_json()
     dataname = data['table_name']
     print(current_user.username)
-    df = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\' and dataname = \'{dataname}\'', db.engine)
+    df = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\' \
+        and dataname = \'{dataname}\'', db.engine)
     return [package_mol(x) for x in df['smiles'].to_list()]
 
+# @main.route('/new_table', methods=['POST'])
+# @login_required
+# def new_table():
+#     data = request.get_json()
+#     table_name = data['table_name']
 
+def is_smiles_in_table(table_name:str, smiles:str):
+    data = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\' \
+        and dataname = \'{table_name}\'', db.engine)
+    return smiles in data['smiles'].to_list()
     
 
 @main.route('/add_mol_to_table', methods=['POST'])
 @login_required
 def add_mol_to_table() -> list:
-    print(current_user.username)
     data = request.get_json()
     smi = data['smi']
+    table_name = data['table_name']
     
-    db.add_data(current_user.username, smi)
-    
-    data = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\'', db.engine)
+    if is_smiles_in_table(table_name, smi):
+        return 'Molecule already in table', 400
+    else:
+        db.add_data(current_user.username, smi, table_name)
+        data = pd.read_sql_query(f'select * from data where username = \'{current_user.username}\' \
+            and dataname = \'{table_name}\'', db.engine)
+        print(data)
+        
     return [package_mol(x) for x in data['smiles'].to_list()]
     
 
